@@ -37,6 +37,31 @@ Options for `import`:
 Then connect from the network applet. The first connection opens a browser
 sign-in; later ones are silent until the session expires.
 
+## Private hostnames do not resolve
+
+Many Azure profiles list a DNS server but no DNS suffixes. NetworkManager only
+hands a VPN's DNS server to systemd-resolved for the VPN's domains, so with
+none the server is never used: the tunnel and routes work, but private names
+(Private Link, internal hosts) resolve through your normal DNS, or not at all.
+`resolvectl status tun0` then shows no DNS server on the link.
+
+Tell NetworkManager which names belong to the VPN, either when importing:
+
+```sh
+nm-openp2s import --replace --dns-domain corp.example --dns-domain privatelink.database.windows.net azurevpnconfig.xml
+nm-openp2s import --replace --dns-all azurevpnconfig.xml   # every name, while connected
+```
+
+or on an existing connection:
+
+```sh
+nmcli connection modify "<connection name>" ipv4.dns-search "~corp.example,~privatelink.database.windows.net"
+nmcli connection modify "<connection name>" ipv4.dns-search "~." ipv4.dns-priority -50   # every name
+```
+
+Reconnect afterwards. `--dns-all` sends all lookups to the VPN's resolver while
+connected, so only use it if that resolver also answers public names.
+
 ## Troubleshooting
 
 ```sh
