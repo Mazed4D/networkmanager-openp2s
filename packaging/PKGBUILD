@@ -8,6 +8,7 @@ url="https://github.com/Mazed4D/networkmanager-openp2s"
 license=('GPL-2.0-only')
 depends=('networkmanager' 'python' 'python-dbus' 'python-gobject' 'libsecret' 'ca-certificates'
          'xdg-utils' 'openssl' 'libcap-ng' 'glibc')
+options=('!debug')
 install=networkmanager-openp2s.install
 source=("openvpn-openp2s-${_openp2s}::https://github.com/wyruweso/openp2s/releases/download/v${_openp2s}/openvpn-openp2s"
         "openvpn-openp2s-${_openp2s}-BUILDINFO::https://github.com/wyruweso/openp2s/releases/download/v${_openp2s}/BUILDINFO")
