@@ -20,11 +20,15 @@ token goes to OpenVPN over a private management socket, never to disk.
 NetworkManager applies addresses, routes and DNS itself, so there is no sudo
 prompt and DNS is handled by systemd-resolved through NetworkManager.
 
-## Install (Arch / CachyOS)
+## Install
+
+Packages for Arch Linux (and derivatives), Debian 13 and Ubuntu 24.04+ are on
+the [releases page](https://github.com/Mazed4D/networkmanager-openp2s/releases).
+See **[docs/INSTALL.md](docs/INSTALL.md)** for the full guide. In short:
 
 ```sh
-cd packaging && makepkg -si
-systemctl --user start nm-openp2s-agent.socket   # once; later logins start it automatically
+sudo pacman -U ./networkmanager-openp2s-*.pkg.tar.zst   # or: sudo apt install ./networkmanager-openp2s_*.deb
+systemctl --user start nm-openp2s-agent.socket          # once; later logins start it automatically
 nm-openp2s import ~/Downloads/azurevpnconfig.xml
 ```
 
