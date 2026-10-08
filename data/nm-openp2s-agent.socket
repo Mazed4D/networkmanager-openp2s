@@ -1,0 +1,10 @@
+[Unit]
+Description=Microsoft Entra sign-in agent for nm-openp2s VPN connections
+
+[Socket]
+ListenStream=%t/nm-openp2s/agent.sock
+SocketMode=0600
+DirectoryMode=0700
+
+[Install]
+WantedBy=sockets.target

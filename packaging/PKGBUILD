@@ -1,0 +1,39 @@
+pkgname=networkmanager-openp2s
+pkgver=0.1.0
+pkgrel=1
+_openp2s=0.2.1
+pkgdesc="NetworkManager VPN plugin for Azure Point-to-Site VPNs with Microsoft Entra ID sign-in"
+arch=('x86_64')
+url="https://github.com/wyruweso/openp2s"
+license=('GPL-2.0-only')
+depends=('networkmanager' 'python' 'python-dbus' 'python-gobject' 'libsecret' 'ca-certificates'
+         'xdg-utils' 'openssl' 'libcap-ng' 'glibc')
+install=networkmanager-openp2s.install
+source=("openvpn-openp2s-${_openp2s}::https://github.com/wyruweso/openp2s/releases/download/v${_openp2s}/openvpn-openp2s"
+        "openvpn-openp2s-${_openp2s}-BUILDINFO::https://github.com/wyruweso/openp2s/releases/download/v${_openp2s}/BUILDINFO")
+sha256sums=('8c00591c80bcc3498107a92784fcc07323b016e7b4b64ce651f615366d27ec7a'
+            'SKIP')
+
+check() {
+  cd "$startdir/.."
+  python -m unittest discover -s tests
+}
+
+package() {
+  local lib="$pkgdir/usr/lib/nm-openp2s"
+  cd "$startdir/.."
+
+  install -Dm0644 -t "$lib/nm_openp2s" nm_openp2s/*.py
+  install -Dm0755 -t "$lib/bin" bin/nm-openp2s bin/nm-openp2s-agent bin/nm-openp2s-helper bin/nm-openp2s-service
+  install -Dm0755 "$srcdir/openvpn-openp2s-${_openp2s}" "$lib/openvpn"
+  install -Dm0644 "$srcdir/openvpn-openp2s-${_openp2s}-BUILDINFO" "$lib/openvpn.BUILDINFO"
+  python -m compileall -q -d /usr/lib/nm-openp2s/nm_openp2s "$lib/nm_openp2s"
+
+  install -dm0755 "$pkgdir/usr/bin"
+  ln -s /usr/lib/nm-openp2s/bin/nm-openp2s "$pkgdir/usr/bin/nm-openp2s"
+
+  install -Dm0644 data/nm-openp2s-service.name "$pkgdir/usr/lib/NetworkManager/VPN/nm-openp2s-service.name"
+  install -Dm0644 data/nm-openp2s-service.conf "$pkgdir/usr/share/dbus-1/system.d/nm-openp2s-service.conf"
+  install -Dm0644 -t "$pkgdir/usr/lib/systemd/user" data/nm-openp2s-agent.socket data/nm-openp2s-agent.service
+  install -Dm0644 -t "$pkgdir/usr/share/licenses/$pkgname" LICENSE
+}

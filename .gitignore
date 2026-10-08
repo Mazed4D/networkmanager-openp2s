@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+packaging/src/
+packaging/pkg/
+packaging/*.pkg.tar.*
+packaging/openvpn-openp2s-*

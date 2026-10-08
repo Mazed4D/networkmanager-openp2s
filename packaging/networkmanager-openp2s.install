@@ -1,0 +1,18 @@
+post_install() {
+  systemctl --global enable nm-openp2s-agent.socket >/dev/null 2>&1
+  systemctl reload dbus.service >/dev/null 2>&1 || true
+  cat <<'EOF'
+==> Start the sign-in agent for your current session (new logins get it automatically):
+      systemctl --user start nm-openp2s-agent.socket
+==> Then add your Azure profile:
+      nm-openp2s import ~/Downloads/azurevpnconfig.xml
+EOF
+}
+
+post_upgrade() {
+  systemctl reload dbus.service >/dev/null 2>&1 || true
+}
+
+pre_remove() {
+  systemctl --global disable nm-openp2s-agent.socket >/dev/null 2>&1 || true
+}

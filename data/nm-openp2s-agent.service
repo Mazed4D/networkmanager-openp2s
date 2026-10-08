@@ -1,0 +1,6 @@
+[Unit]
+Description=Microsoft Entra sign-in agent for nm-openp2s VPN connections
+Requires=nm-openp2s-agent.socket
+
+[Service]
+ExecStart=/usr/lib/nm-openp2s/bin/nm-openp2s-agent
