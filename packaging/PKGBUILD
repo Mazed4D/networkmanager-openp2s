@@ -1,6 +1,6 @@
 pkgname=networkmanager-openp2s
 pkgver=0.1.0
-pkgrel=1
+pkgrel=4
 _openp2s=0.2.1
 pkgdesc="NetworkManager VPN plugin for Azure Point-to-Site VPNs with Microsoft Entra ID sign-in"
 arch=('x86_64')

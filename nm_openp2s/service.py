@@ -306,7 +306,7 @@ class Plugin(dbus.service.Object):
                 gateways=gateways,
                 port=int(data.get("port", "443")),
                 server_secret=tls_auth,
-                ca_path=data.get("ca", self.options.ca),
+                ca_path=self.options.ca,
                 management_socket=socket_path,
                 helper_command=helper,
                 dev=self.options.dev,
@@ -345,9 +345,11 @@ class Plugin(dbus.service.Object):
 
     def _activating_uid(self, data: dict[str, str], conn) -> int:
         user = data.get("user")
+        permitted = [str(p).split(":")[1] for p in conn.get("permissions", []) if str(p).startswith("user:")]
         if not user:
-            permitted = [str(p).split(":")[1] for p in conn.get("permissions", []) if str(p).startswith("user:")]
             user = permitted[0] if len(permitted) == 1 else None
+        elif permitted and user not in permitted:
+            raise VpnError("BadArguments", f"user {user!r} is not permitted to use this connection")
         if self.options.session_bus and not user:
             return os.getuid()
         if not user:

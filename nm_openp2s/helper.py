@@ -33,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         bus = dbus.SystemBus()
     try:
-        proxy = bus.get_object(args.bus_name, PLUGIN_PATH)
+        proxy = bus.get_object(args.bus_name, PLUGIN_PATH, introspect=False)
         proxy.RouteUp(dbus.Dictionary(collect(dict(os.environ)), signature="ss"), dbus_interface=HELPER_INTERFACE)
     except dbus.DBusException as error:
         print(f"nm-openp2s-helper: could not report to {args.bus_name}: {error}", file=sys.stderr)

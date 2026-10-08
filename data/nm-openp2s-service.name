@@ -3,3 +3,4 @@ name=openp2s
 service=org.freedesktop.NetworkManager.openp2s
 program=/usr/lib/nm-openp2s/bin/nm-openp2s-service
 supports-multiple-connections=true
+supports-safe-private-file-access=true
