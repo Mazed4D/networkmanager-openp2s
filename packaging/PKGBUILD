@@ -1,26 +1,37 @@
-pkgname=networkmanager-openp2s
-pkgver=0.1.1
+pkgbase=networkmanager-openp2s
+pkgname=('networkmanager-openp2s' 'plasma-nm-openp2s')
+pkgver=0.1.2
 pkgrel=1
 _openp2s=0.2.1
 pkgdesc="NetworkManager VPN plugin for Azure Point-to-Site VPNs with Microsoft Entra ID sign-in"
 arch=('x86_64')
 url="https://github.com/Mazed4D/networkmanager-openp2s"
 license=('GPL-2.0-only')
-depends=('networkmanager' 'python' 'python-dbus' 'python-gobject' 'libsecret' 'ca-certificates'
-         'xdg-utils' 'openssl' 'libcap-ng' 'glibc')
+makedepends=('cmake' 'qt6-base' 'kcoreaddons' 'kwidgetsaddons' 'networkmanager-qt' 'plasma-nm' 'libnm'
+             'python' 'python-dbus' 'python-gobject')
 options=('!debug')
-install=networkmanager-openp2s.install
 source=("openvpn-openp2s-${_openp2s}::https://github.com/wyruweso/openp2s/releases/download/v${_openp2s}/openvpn-openp2s"
         "openvpn-openp2s-${_openp2s}-BUILDINFO::https://github.com/wyruweso/openp2s/releases/download/v${_openp2s}/BUILDINFO")
 sha256sums=('8c00591c80bcc3498107a92784fcc07323b016e7b4b64ce651f615366d27ec7a'
             'SKIP')
 
+build() {
+  cmake -S "$startdir/../plasma" -B build -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=None
+  cmake --build build
+}
+
 check() {
   cd "$startdir/.."
   python -m unittest discover -s tests
+  ctest --test-dir "$srcdir/build" --output-on-failure
 }
 
-package() {
+package_networkmanager-openp2s() {
+  depends=('networkmanager' 'python' 'python-dbus' 'python-gobject' 'libsecret' 'ca-certificates'
+           'xdg-utils' 'openssl' 'libcap-ng' 'glibc')
+  optdepends=('plasma-nm-openp2s: connect and import from KDE Plasma')
+  install=networkmanager-openp2s.install
+
   local lib="$pkgdir/usr/lib/nm-openp2s"
   cd "$startdir/.."
 
@@ -37,4 +48,13 @@ package() {
   install -Dm0644 data/nm-openp2s-service.conf "$pkgdir/usr/share/dbus-1/system.d/nm-openp2s-service.conf"
   install -Dm0644 -t "$pkgdir/usr/lib/systemd/user" data/nm-openp2s-agent.socket data/nm-openp2s-agent.service
   install -Dm0644 -t "$pkgdir/usr/share/licenses/$pkgname" LICENSE
+}
+
+package_plasma-nm-openp2s() {
+  pkgdesc="KDE Plasma support for networkmanager-openp2s VPN connections"
+  depends=("networkmanager-openp2s=$pkgver" 'plasma-nm' 'qt6-base' 'kcoreaddons' 'kwidgetsaddons'
+           'networkmanager-qt' 'libnm' 'glib2' 'glibc' 'gcc-libs')
+
+  DESTDIR="$pkgdir" cmake --install "$srcdir/build"
+  install -Dm0644 -t "$pkgdir/usr/share/licenses/$pkgname" "$startdir/../LICENSE"
 }

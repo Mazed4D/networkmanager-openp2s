@@ -16,6 +16,7 @@ token goes to OpenVPN over a private management socket, never to disk.
 | `nm-openp2s-helper` | root, OpenVPN `route-up` hook | forwards the pushed config to the service |
 | `nm-openp2s-agent` | you, socket-activated user service | Entra sign-in in your browser (PKCE); refresh token kept in KWallet |
 | `nm-openp2s` | you | `import` a profile, `login`, `logout` |
+| `plasmanetworkmanagement_openp2sui` | you, inside Plasma | lets the Plasma applet and System Settings connect, edit and import this VPN type |
 
 NetworkManager applies addresses, routes and DNS itself, so there is no sudo
 prompt and DNS is handled by systemd-resolved through NetworkManager.
@@ -24,12 +25,14 @@ prompt and DNS is handled by systemd-resolved through NetworkManager.
 
 Packages for Arch Linux (and derivatives), Debian 13 and Ubuntu 24.04+ are on
 the [releases page](https://github.com/Mazed4D/networkmanager-openp2s/releases).
+`networkmanager-openp2s` is the VPN itself; on KDE Plasma 6 also install
+`plasma-nm-openp2s`, without which Plasma refuses to connect this VPN type.
 See **[docs/INSTALL.md](docs/INSTALL.md)** for the full guide. In short:
 
 ```sh
-sudo pacman -U ./networkmanager-openp2s-*.pkg.tar.zst   # or: sudo apt install ./networkmanager-openp2s_*.deb
+sudo pacman -U ./networkmanager-openp2s-*.pkg.tar.zst ./plasma-nm-openp2s-*.pkg.tar.zst
 systemctl --user start nm-openp2s-agent.socket          # once; later logins start it automatically
-nm-openp2s import ~/Downloads/azurevpnconfig.xml
+nm-openp2s import ~/Downloads/azurevpnconfig.xml        # or System Settings → Import VPN Connection…
 ```
 
 Options for `import`:
@@ -80,14 +83,21 @@ nm-openp2s logout                                             # forget the store
 - IPv4 only; TCP gateways only (all Azure P2S OpenVPN gateways today).
 - The sign-in needs a logged-in desktop session, so the VPN cannot come up
   before login.
-- Plasma has no editor page for this VPN type; change settings with
-  `nm-openp2s import --replace` or `nmcli connection modify`.
+- KDE support is for Plasma 6. Plasma 5 (Kubuntu 24.04) can use the VPN with
+  `nmcli`, but its network applet will not connect it.
 
 ## Development
 
 `python -m unittest discover -s tests`. The service can run unprivileged on the
 session bus against `dev null` (`--session-bus --dev null`) for end-to-end
 testing against a real gateway without creating a tunnel.
+
+The Plasma plugin in `plasma/` builds with CMake against the installed
+plasma-nm (`cmake -S plasma -B build && cmake --build build && ctest --test-dir build`).
+plasma-nm does not install its plugin headers, so `plasma/compat/` declares the
+plugin interface itself; `plasma/check-interface.py` verifies those declarations
+against a plasma-nm release, and CI runs it against the plasma-nm each package
+is built with.
 
 ## License
 

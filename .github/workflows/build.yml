@@ -29,8 +29,10 @@ jobs:
         run: |
           source packaging/PKGBUILD
           code="$(python3 -c 'import nm_openp2s; print(nm_openp2s.__version__)')"
-          echo "PKGBUILD: $pkgver  code: $code"
+          cmake_version="$(sed -nE 's/^project\(plasma-nm-openp2s VERSION ([0-9.]+).*/\1/p' plasma/CMakeLists.txt)"
+          echo "PKGBUILD: $pkgver  code: $code  plasma: $cmake_version"
           test "$pkgver" = "$code"
+          test "$pkgver" = "$cmake_version"
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             test "${GITHUB_REF#refs/tags/v}" = "$pkgver"
           fi
@@ -41,7 +43,7 @@ jobs:
     container: archlinux:base-devel
     steps:
       - uses: actions/checkout@v7
-      - name: Build package
+      - name: Build packages
         run: |
           pacman -Syu --noconfirm
           useradd -m builder
@@ -49,6 +51,12 @@ jobs:
           chown -R builder: "$GITHUB_WORKSPACE"
           cd packaging
           sudo -u builder makepkg --syncdeps --noconfirm
+      - name: Plasma plugin interface matches plasma-nm
+        run: |
+          version="$(pacman -Q plasma-nm | awk '{print $2}' | cut -d- -f1)"
+          echo "plasma-nm $version"
+          plasma/fetch-upstream-headers.sh "$version" /tmp/plasma-nm-headers
+          python3 plasma/check-interface.py /tmp/plasma-nm-headers
       - name: Install and smoke test
         run: |
           pacman -U --noconfirm packaging/*.pkg.tar.zst
@@ -57,9 +65,12 @@ jobs:
           head -1 <<<"$out"
           grep -q '^OpenVPN 2' <<<"$out"
           test -f /usr/lib/NetworkManager/VPN/nm-openp2s-service.name
+          plugin=/usr/lib/qt6/plugins/plasma/network/vpn/plasmanetworkmanagement_openp2sui.so
+          test -f "$plugin"
+          ! ldd "$plugin" | grep 'not found'
       - uses: actions/upload-artifact@v7
         with:
-          name: arch-package
+          name: arch-packages
           path: packaging/*.pkg.tar.zst
           if-no-files-found: error
 
@@ -76,30 +87,74 @@ jobs:
           path: dist/*.deb
           if-no-files-found: error
 
+  deb-plasma:
+    needs: test
+    runs-on: ubuntu-24.04
+    container: debian:trixie
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential cmake pkg-config curl ca-certificates \
+            dpkg-dev qt6-base-dev libkf6coreaddons-dev libkf6widgetsaddons-dev libkf6networkmanagerqt-dev \
+            libnm-dev plasma-nm qt6-qpa-plugins python3 python3-gi python3-dbus gir1.2-nm-1.0
+      - name: Plasma plugin interface matches plasma-nm
+        run: |
+          version="$(dpkg-query -W -f='${Version}' plasma-nm | sed -E 's/^[0-9]+://; s/-[^-]*$//')"
+          echo "plasma-nm $version"
+          plasma/fetch-upstream-headers.sh "$version" /tmp/plasma-nm-headers
+          python3 plasma/check-interface.py /tmp/plasma-nm-headers
+      - name: Build package
+        run: packaging/debian/build-plasma-deb.sh dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: deb-plasma-package
+          path: dist/*.deb
+          if-no-files-found: error
+
   deb-install:
-    needs: deb
+    needs: [deb, deb-plasma]
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        image: ["debian:trixie", "ubuntu:24.04", "ubuntu:26.04"]
+        include:
+          - image: "debian:trixie"
+            plasma: true
+          - image: "ubuntu:24.04"
+            plasma: false
+          - image: "ubuntu:26.04"
+            plasma: true
     container: ${{ matrix.image }}
     steps:
       - uses: actions/download-artifact@v8
         with:
-          name: deb-package
+          pattern: deb-*
           path: dist
+          merge-multiple: true
       - name: Install and smoke test
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
           apt-get update
-          apt-get install -y ./dist/*.deb
+          apt-get install -y ./dist/networkmanager-openp2s_*.deb
           nm-openp2s --version
           out="$(/usr/lib/nm-openp2s/openvpn --version || true)"
           head -1 <<<"$out"
           grep -q '^OpenVPN 2' <<<"$out"
           test -f /usr/lib/NetworkManager/VPN/nm-openp2s-service.name
+      - name: Install Plasma support
+        if: matrix.plasma
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get install -y ./dist/plasma-nm-openp2s_*.deb
+          plugin="$(dpkg -L plasma-nm-openp2s | grep 'plasma/network/vpn/.*\.so$')"
+          echo "$plugin"
+          ! ldd "$plugin" | grep 'not found'
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')

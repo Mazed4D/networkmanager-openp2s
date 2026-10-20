@@ -10,14 +10,23 @@
   configuration → Download VPN client*, then unpack the zip.
 - glibc 2.38 or newer, required by the bundled OpenVPN build.
 
-| Distribution | Package | Status |
-| --- | --- | --- |
-| Arch Linux, CachyOS, EndeavourOS, Manjaro | `.pkg.tar.zst` | tested on KDE Plasma 6 |
-| Debian 13 (trixie) | `.deb` | installs in CI |
-| Ubuntu 24.04 and newer | `.deb` | installs in CI |
-| Debian 12, Ubuntu 22.04 | — | not supported (glibc too old) |
+There are two packages:
 
-Desktops other than KDE Plasma should list the connection too if they use
+- **networkmanager-openp2s**: the VPN itself. Required everywhere.
+- **plasma-nm-openp2s**: KDE Plasma 6 support. Plasma refuses to connect a VPN
+  type it has no plugin for ("Plasma is missing support for 'openp2s' VPN
+  connections"), so on Plasma install both. It also adds the settings page and
+  lets System Settings import the Azure profile.
+
+| Distribution | VPN | Plasma support | Status |
+| --- | --- | --- | --- |
+| Arch Linux, CachyOS, EndeavourOS, Manjaro | yes | yes | tested on KDE Plasma 6 |
+| Debian 13 (trixie) | yes | yes | installs in CI |
+| Ubuntu 26.04 / Kubuntu 26.04 | yes | yes | installs in CI |
+| Ubuntu 24.04 / Kubuntu 24.04 | yes | no (Plasma 5) | installs in CI; connect with `nmcli` |
+| Debian 12, Ubuntu 22.04 | no | no | glibc too old |
+
+Desktops other than KDE Plasma may list the connection if they use
 NetworkManager, but they have not been tested.
 
 ## 1. Install the package
@@ -29,14 +38,18 @@ with a `SHA256SUMS` file.
 ### Arch Linux and derivatives
 
 ```sh
-VERSION=0.1.1-1
+VERSION=0.1.2-1
 base=https://github.com/Mazed4D/networkmanager-openp2s/releases/download/v${VERSION%-*}
-curl -LO "$base/networkmanager-openp2s-$VERSION-x86_64.pkg.tar.zst" -LO "$base/SHA256SUMS"
+curl -LO "$base/networkmanager-openp2s-$VERSION-x86_64.pkg.tar.zst" \
+     -LO "$base/plasma-nm-openp2s-$VERSION-x86_64.pkg.tar.zst" -LO "$base/SHA256SUMS"
 sha256sum --check --ignore-missing SHA256SUMS
-sudo pacman -U "./networkmanager-openp2s-$VERSION-x86_64.pkg.tar.zst"
+sudo pacman -U "./networkmanager-openp2s-$VERSION-x86_64.pkg.tar.zst" "./plasma-nm-openp2s-$VERSION-x86_64.pkg.tar.zst"
 ```
 
-Or build it from source:
+Leave out the `plasma-nm-openp2s` file if you do not use KDE Plasma.
+
+Or build both from source (builds the Plasma plugin against your installed
+plasma-nm):
 
 ```sh
 git clone https://github.com/Mazed4D/networkmanager-openp2s.git
@@ -47,14 +60,19 @@ makepkg -si
 ### Debian and Ubuntu
 
 ```sh
-VERSION=0.1.1-1
+VERSION=0.1.2-1
 base=https://github.com/Mazed4D/networkmanager-openp2s/releases/download/v${VERSION%-*}
-curl -LO "$base/networkmanager-openp2s_${VERSION}_amd64.deb" -LO "$base/SHA256SUMS"
+curl -LO "$base/networkmanager-openp2s_${VERSION}_amd64.deb" \
+     -LO "$base/plasma-nm-openp2s_${VERSION}_amd64.deb" -LO "$base/SHA256SUMS"
 sha256sum --check --ignore-missing SHA256SUMS
-sudo apt install "./networkmanager-openp2s_${VERSION}_amd64.deb"
+sudo apt install "./networkmanager-openp2s_${VERSION}_amd64.deb" "./plasma-nm-openp2s_${VERSION}_amd64.deb"
 ```
 
-Or build the `.deb` from a checkout with `packaging/debian/build-deb.sh`.
+Leave out the `plasma-nm-openp2s` file on Ubuntu 24.04 or if you do not use
+KDE Plasma.
+
+Or build the packages from a checkout with `packaging/debian/build-deb.sh` and
+`packaging/debian/build-plasma-deb.sh`.
 
 Replace `VERSION` with the release you want. The package includes the patched
 OpenVPN from [OpenP2S](https://github.com/wyruweso/openp2s), installed as
@@ -71,12 +89,19 @@ systemctl --user start nm-openp2s-agent.socket
 
 ## 3. Add your VPN profile
 
+On KDE Plasma: *System Settings → Wi-Fi & Networking*, click **+** (Add new
+connection), choose **Import VPN Connection…**, and pick the
+`azurevpnconfig.xml` file.
+
+Or from a terminal:
+
 ```sh
 nm-openp2s import ~/Downloads/azurevpnconfig.xml
 ```
 
 The connection is named after the profile; use `--name` to choose another.
-It is private to your user.
+It is private to your user. On Plasma you can change the gateway, DNS servers
+and DNS domains later on the connection's VPN tab.
 
 If your profile lists a DNS server but no DNS suffixes (`import` prints a note
 when it does), private hostnames will not resolve over the VPN until you tell

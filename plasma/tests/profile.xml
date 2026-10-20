@@ -1,0 +1,7 @@
+<AzVpnProfile><name>hub</name><serverlist><ServerEntry>
+<fqdn>azuregateway-x.vpn.azure.com</fqdn></ServerEntry></serverlist>
+<clientauth><type>aad</type><aad><issuer>https://sts.windows.net/11111111-2222-3333-4444-555555555555/</issuer>
+<tenant>https://login.microsoftonline.com/11111111-2222-3333-4444-555555555555</tenant><audience>41b23e61-6c1e-4545-b367-cd054e0ed4b4</audience></aad></clientauth>
+<protocolconfig><sslprotocolConfig><transportprotocol>tcp</transportprotocol></sslprotocolConfig></protocolconfig>
+<clientconfig><dnsservers><dnsserver>10.10.0.4</dnsserver></dnsservers></clientconfig>
+<servervalidation><serversecret>abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab</serversecret></servervalidation></AzVpnProfile>

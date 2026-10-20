@@ -1,0 +1,12 @@
+{
+    "KPlugin": {
+        "Category": "VPNService",
+        "Description": "Azure Point-to-Site VPN with Microsoft Entra ID sign-in",
+        "EnabledByDefault": false,
+        "Icon": "",
+        "License": "GPL",
+        "Name": "Azure Point-to-Site with Microsoft Entra ID (openp2s)",
+        "Website": "https://github.com/Mazed4D/networkmanager-openp2s"
+    },
+    "X-NetworkManager-Services": "org.freedesktop.NetworkManager.openp2s"
+}

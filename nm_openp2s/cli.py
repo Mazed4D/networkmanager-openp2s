@@ -89,11 +89,31 @@ def build_connection(profile, *, name: str, user: str, dns_domains: list[str], d
     return connection
 
 
+def _load(args: argparse.Namespace):
+    with open(args.profile, "rb") as handle:
+        profile = parse(handle.read())
+    return profile, [validate_domain(d) for d in args.dns_domain]
+
+
+def cmd_keyfile(args: argparse.Namespace) -> int:
+    try:
+        profile, dns_domains = _load(args)
+    except (OSError, ProfileError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+
+    NM = _nm()
+    connection = build_connection(
+        profile, name=args.name or profile.name, user=args.user, dns_domains=dns_domains, dns_all=args.dns_all
+    )
+    keyfile = NM.keyfile_write(connection, NM.KeyfileHandlerFlags.NONE, None, None)
+    sys.stdout.write(keyfile.to_data()[0])
+    return 0
+
+
 def cmd_import(args: argparse.Namespace) -> int:
     try:
-        with open(args.profile, "rb") as handle:
-            profile = parse(handle.read())
-        dns_domains = [validate_domain(d) for d in args.dns_domain]
+        profile, dns_domains = _load(args)
     except (OSError, ProfileError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
@@ -177,6 +197,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--dns-all", action="store_true", help="resolve every name through the VPN while connected")
     p.add_argument("--replace", action="store_true", help="replace an existing connection with the same name")
     p.set_defaults(func=cmd_import)
+
+    p = sub.add_parser("keyfile", help="print a profile as a NetworkManager keyfile, without adding it")
+    p.add_argument("profile", help="azurevpnconfig.xml")
+    p.add_argument("--name", help="connection name (default: the profile name)")
+    p.add_argument("--user", default=getpass.getuser(), help="whose sign-in to use (default: you)")
+    p.add_argument("--dns-domain", action="append", default=[], metavar="SUFFIX",
+                   help="resolve names under SUFFIX through the VPN (repeatable)")
+    p.add_argument("--dns-all", action="store_true", help="resolve every name through the VPN while connected")
+    p.set_defaults(func=cmd_keyfile)
 
     p = sub.add_parser("login", help="sign in now, without connecting")
     p.add_argument("connection", help="connection name")
